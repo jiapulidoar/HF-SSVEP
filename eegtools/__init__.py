@@ -1,0 +1,1 @@
+from .eegprocessor import EEGProcessor
