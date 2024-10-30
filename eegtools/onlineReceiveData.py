@@ -1,6 +1,6 @@
 import socket
 import numpy as np
-from eegtools.fbcca import FBCCA
+from fbcca import FBCCA
 
 class ActiveTwo():
     """
@@ -121,13 +121,13 @@ class SSVEPOnlineProcessor:
             
         # Update buffer with new data
         self.buffer = np.concatenate([self.buffer, rawdata], axis=0)
-        self.buffer = self.buffer[-int(4*self.sfreq):, :]  # Keep last 2 seconds
+        self.buffer = self.buffer[-int(2*self.sfreq):, :]  # Keep last 2 seconds
         
         return self.make_prediction()
     
     def make_prediction(self):
         """Make SSVEP prediction using FBCCA"""
-        prediction, rho = self.fbcca_model.fbcca(self.buffer, self.frequencies, self.sfreq)
+        prediction, rho = self.fbcca_model.fbcca(np.expand_dims(self.buffer.T[13:18], axis=0), self.frequencies, self.sfreq)
         
         # Update prediction tracking
         if self.last_prediction == prediction:
@@ -141,7 +141,7 @@ class SSVEPOnlineProcessor:
     def check_action_trigger(self, prediction, threshold=4):
         """Check if action should be triggered based on consistent predictions"""
         if self.prediction_count >= threshold:
-            print(f"Action triggered for class {prediction}")
+            print(f"####Action triggered for class {prediction}")
             self.prediction_count = 0
             return True
         return False
@@ -159,50 +159,51 @@ class SSVEPOnlineProcessor:
 
 if __name__ == '__main__':
 
-    #processor = SSVEPOnlineProcessor()
-    #processor.run()
+    processor = SSVEPOnlineProcessor()
+    processor.run()
 
     # initialize the device
-    device = ActiveTwo(host='127.0.0.1', sfreq=512, port=8888, nchannels=32, tcpsamples=4)
+    # device = ActiveTwo(host='127.0.0.1', sfreq=512, port=8888, nchannels=32, tcpsamples=4)
 
-    fbcca_model = FBCCA(num_harms=2, num_fbs=2, a=1.25, b=0.25)
+    # fbcca_model = FBCCA(num_harms=2, num_fbs=2, a=1.25, b=0.25)
 
-    frequencies = [32.5, 34.0, 31.5, 35.5, 34.5, 30.0, 33.5, 30.5, 32.0, 35.0, 31.0, 33.0]
+    # frequencies = [32.5, 34.0, 31.5, 35.5, 34.5, 30.0, 33.5, 30.5, 32.0, 35.0, 31.0, 33.0]
 
-    channels = [13,14,15,16,17]
+    # channels = [13,14,15,16,17]
 
-    # read 30 seconds of signal and print out the data
-    while True:
-        buffer = None
-        prediction_count = 0
-        last_prediction = None
+    # # read 30 seconds of signal and print out the data
+    # while True:
+    #     buffer = None
+    #     prediction_count = 0
+    #     last_prediction = None
 
-        while True:
-            # Read 0.5 seconds of data (512x32)
-            rawdata = device.read(duration=0.5)
+    #     while True:
+    #         # Read 0.5 seconds of data (512x32)
+    #         rawdata = device.read(duration=0.5)
             
-            if buffer is None:
-                # First iteration - initialize buffer
-                buffer = rawdata
-            else:
-                # Concatenate new data and keep latest 1 second
-                buffer = np.concatenate([buffer, rawdata], axis=0)
-                buffer = buffer[-2048:, :]  # Keep last 2048 samples (2 seconds)
+    #         if buffer is None:
+    #             # First iteration - initialize buffer
+    #             buffer = rawdata
+    #         else:
+    #             # Concatenate new data and keep latest 1 second
+    #             buffer = np.concatenate([buffer, rawdata], axis=0)
+    #             buffer = buffer[-1024:, :]  # Keep last 2048 samples (2 seconds)
 
-                prediction, rho = fbcca_model.fbcca(buffer, frequencies, 512)
+    #             #print(np.expand_dims(buffer.T, axis=0).shape)
+
+    #             prediction, rho = fbcca_model.fbcca(np.expand_dims(buffer.T[13:18], axis=0), frequencies, 512)
                 
-                print(rho)
-                # Check if prediction matches previous
-                if last_prediction == prediction:
-                    prediction_count += 1
-                else:
-                    # Reset count if prediction changes
-                    prediction_count = 1
-                    last_prediction = prediction
+    #             # Check if prediction matches previous
+    #             if last_prediction == prediction:
+    #                 prediction_count += 1
+    #             else:
+    #                 # Reset count if prediction changes
+    #                 prediction_count = 1
+    #                 last_prediction = prediction
                 
-                # Perform action after 4 consistent predictions
-                if prediction_count >= 4:
-                    print(f"Action triggered for class {prediction}")
-                    prediction_count = 0  # Reset counter after action
+    #             # Perform action after 4 consistent predictions
+    #             if prediction_count >= 4:
+    #                 print(f"******Action triggered for class {prediction}")
+    #                 prediction_count = 0  # Reset counter after action
                 
-                print(f"Prediction: {prediction}, Count: {prediction_count}, Rho: {rho}")
+    #             print(f"Prediction: {prediction}, Count: {prediction_count}, Rho: {rho}")
