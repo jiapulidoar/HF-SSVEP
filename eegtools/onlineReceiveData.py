@@ -154,7 +154,7 @@ class SSVEPOnlineProcessor:
             self.prediction_count = 1
             self.last_prediction = prediction
             
-        return prediction, rho
+        return prediction[0], rho
 
     def check_action_trigger(self, prediction, current_time):
         """Check if action should be triggered based on state machine logic"""
@@ -184,6 +184,7 @@ class SSVEPOnlineProcessor:
                 })
                 print(f"Selection confirmed for frequency {self.frequencies[prediction]}")
                 self.prediction_count = 0
+                
 
     def run(self):
         """Main processing loop"""
@@ -192,8 +193,15 @@ class SSVEPOnlineProcessor:
             current_time = time.time()
             
             if prediction is not None:
+                if( self.state == self.button_states['SELECTION']):
+                    time.sleep(1)
+                    self.state = self.button_states['IDLE']
+                    continue
+
                 print(f"State: {self.state}, Prediction: {prediction}, Count: {self.prediction_count}, Rho: {rho}")
                 self.check_action_trigger(prediction, current_time)
+
+                
 
 if __name__ == '__main__':
 
