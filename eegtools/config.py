@@ -34,7 +34,7 @@ class EEGConfig:
     # State machine parameters
     STATE_MACHINE = {
         'hover_duration': 2.0,  # seconds
-        'prediction_threshold': 4  # consecutive predictions needed
+        'prediction_threshold': 6  # consecutive predictions needed
     }
 
     # Button state definitions

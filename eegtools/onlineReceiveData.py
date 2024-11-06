@@ -4,6 +4,7 @@ from fbcca import FBCCA
 from TCPserver import TCPServer
 import time 
 from config import EEGConfig
+import mne
 
 class ActiveTwo():
     """
@@ -102,6 +103,11 @@ class SSVEPOnlineProcessor:
         self.device = ActiveTwo(host=host, sfreq=sfreq, port=port, 
                               nchannels=nchannels, tcpsamples=tcpsamples)
         
+
+        ch_names = mne.channels.make_standard_montage('biosemi32').ch_names 
+        ch_types = "eeg"
+        self.info = mne.create_info(ch_names, sfreq, ch_types)
+        
         # Initialize FBCCA model
         self.fbcca_model = FBCCA(
             num_harms=num_harms,
@@ -114,6 +120,8 @@ class SSVEPOnlineProcessor:
         self.buffer = None
         self.prediction_count = 0
         self.last_prediction = None
+        self.idle_feq = None 
+        self.voting = []
         
         # SSVEP frequencies and channels
         self.frequencies = frequencies if frequencies else EEGConfig.FREQUENCIES
@@ -145,7 +153,18 @@ class SSVEPOnlineProcessor:
     
     def make_prediction(self):
         """Make SSVEP prediction using FBCCA"""
-        prediction, rho = self.fbcca_model.fbcca(np.expand_dims(self.buffer.T[13:18], axis=0), self.frequencies, self.sfreq)
+        if(self.buffer.shape[0] < self.sfreq*2):
+            return 0, [0]
+
+        raw = mne.io.RawArray(self.buffer.T, info = self.info, verbose=False) 
+        
+        raw.notch_filter([60], phase='zero',verbose=False, trans_bandwidth=4)
+        #raw.filter(l_freq=0.1, filter_length='auto', h_freq=120, fir_design="firwin", verbose=False)
+        raw.set_eeg_reference(['Cz'], verbose=False)
+        raw.pick_channels(['O1', 'O2', 'Oz', 'PO3', 'PO4'], verbose=False)
+        #raw.plot_psd(10, 70)
+
+        prediction, rho = self.fbcca_model.fbcca(np.expand_dims(raw.get_data(), axis=0), self.frequencies, self.sfreq)
         
         # Update prediction tracking
         if self.last_prediction == prediction:
@@ -161,6 +180,9 @@ class SSVEPOnlineProcessor:
         if self.state == self.button_states['IDLE']:
             if self.prediction_count >= self.prediction_threshold:
                 self.state = self.button_states['HOVER']
+                self.idle_feq = prediction
+                self.voting.append(prediction)
+                
                 self.hover_start_time = current_time
                 self.server.send_data({
                     "Frequency": str(self.frequencies[prediction]), 
@@ -169,21 +191,26 @@ class SSVEPOnlineProcessor:
                 print(f"Entering Hover state for frequency {self.frequencies[prediction]}")
                 
         elif self.state == self.button_states['HOVER']:
-            if prediction != self.last_prediction:
-                self.state = self.button_states['IDLE']
-                self.server.send_data({
-                    "Frequency": str(self.frequencies[prediction]), 
-                    "Action": self.button_states['CANCEL']
-                })
-                print("Cancelling selection - prediction changed during hover")
-            elif current_time - self.hover_start_time >= self.hover_duration:
-                self.state = self.button_states['SELECTION']
-                self.server.send_data({
-                    "Frequency": str(self.frequencies[prediction]), 
-                    "Action": self.button_states['SELECTION']
-                })
-                print(f"Selection confirmed for frequency {self.frequencies[prediction]}")
-                self.prediction_count = 0
+            self.voting.append(prediction)
+            if current_time - self.hover_start_time >= self.hover_duration:
+                if(self.voting.count(self.idle_feq) >= len(self.voting)):
+                    self.state = self.button_states['SELECTION']
+                    self.server.send_data({
+                        "Frequency": str(self.frequencies[self.idle_feq]), 
+                        "Action": self.button_states['SELECTION']
+                    })
+                    print(f"Selection confirmed for frequency {self.frequencies[self.idle_feq]}")
+
+                    self.voting = []
+                else: 
+                    print(f"Selection canceled for frequency {self.frequencies[prediction]}")
+                    self.server.send_data({
+                        "Frequency": str(self.frequencies[self.idle_feq]), 
+                        "Action": self.button_states['CANCEL']
+                    })
+                    self.voting = []
+                    self.state = self.button_states['IDLE']
+
                 
 
     def run(self):
@@ -191,6 +218,7 @@ class SSVEPOnlineProcessor:
         while True:
             prediction, rho = self.process_chunk()
             current_time = time.time()
+            print(prediction)
             
             if prediction is not None:
                 if( self.state == self.button_states['SELECTION']):
@@ -198,7 +226,7 @@ class SSVEPOnlineProcessor:
                     self.state = self.button_states['IDLE']
                     continue
 
-                print(f"State: {self.state}, Prediction: {prediction}, Count: {self.prediction_count}, Rho: {rho}")
+                print(f"State: {self.state}, Prediction: {prediction}, Count: {self.prediction_count}")
                 self.check_action_trigger(prediction, current_time)
 
                 
@@ -221,6 +249,7 @@ if __name__ == '__main__':
         prediction_threshold=EEGConfig.STATE_MACHINE['prediction_threshold'],
         button_states=EEGConfig.BUTTON_STATES
     )
+    print("START PROGRAM")
     processor.run()
 
     # initialize the device

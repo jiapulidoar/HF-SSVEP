@@ -44,6 +44,7 @@ class TCPServer:
         try:
             # Convert to JSON and send
             json_data = json.dumps(data)
+            print(json_data)
             self.client_socket.send(json_data.encode())
             
         except Exception as e:
@@ -67,13 +68,13 @@ if __name__ == "__main__":
         while True:
             # Example: send random data every second
             data = {
-                "Frequency" : "32.5",
+                "Frequency" : "30.0",
                 "Action" : "Hover"
             }
             server.send_data(data)
             time.sleep(3)
             data = {
-                "Frequency" : "32.5",
+                "Frequency" : "30.0",
                 "Action" : "Cancel"
             }
             server.send_data(data)
