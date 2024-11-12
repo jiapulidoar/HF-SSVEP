@@ -147,7 +147,7 @@ class SSVEPOnlineProcessor:
             
         # Update buffer with new data
         self.buffer = np.concatenate([self.buffer, rawdata], axis=0)
-        self.buffer = self.buffer[-int(2*self.sfreq):, :]  # Keep last 2 seconds
+        self.buffer = self.buffer[-int(5*self.sfreq):, :]  # Keep last 5 seconds
         
         return self.make_prediction()
     
@@ -155,12 +155,14 @@ class SSVEPOnlineProcessor:
         """Make SSVEP prediction using FBCCA"""
         if(self.buffer.shape[0] < self.sfreq*2):
             return 0, [0]
-
-        raw = mne.io.RawArray(self.buffer.T, info = self.info, verbose=False) 
+        if self.state == self.button_states['HOVER']:
+            raw = mne.io.RawArray(self.buffer[-int(2.5*self.sfreq):, :].T, info = self.info, verbose=False) 
+        else:
+            raw = mne.io.RawArray(self.buffer[-int(2*self.sfreq):, :].T, info = self.info, verbose=False) 
         
         raw.notch_filter([60], phase='zero',verbose=False, trans_bandwidth=4)
         #raw.filter(l_freq=0.1, filter_length='auto', h_freq=120, fir_design="firwin", verbose=False)
-        raw.set_eeg_reference(['Cz'], verbose=False)
+        raw.set_eeg_reference(['Fz'], verbose=False)
         raw.pick_channels(['O1', 'O2', 'Oz', 'PO3', 'PO4'], verbose=False)
         #raw.plot_psd(10, 70)
 
@@ -181,7 +183,7 @@ class SSVEPOnlineProcessor:
             if self.prediction_count >= self.prediction_threshold:
                 self.state = self.button_states['HOVER']
                 self.idle_feq = prediction
-                self.voting.append(prediction)
+                #self.voting.append(prediction)
                 
                 self.hover_start_time = current_time
                 self.server.send_data({
@@ -193,7 +195,7 @@ class SSVEPOnlineProcessor:
         elif self.state == self.button_states['HOVER']:
             self.voting.append(prediction)
             if current_time - self.hover_start_time >= self.hover_duration:
-                if(self.voting.count(self.idle_feq) >= len(self.voting)):
+                if(self.voting.count(self.idle_feq) > len(self.voting)/2):
                     self.state = self.button_states['SELECTION']
                     self.server.send_data({
                         "Frequency": str(self.frequencies[self.idle_feq]), 
@@ -203,7 +205,7 @@ class SSVEPOnlineProcessor:
 
                     self.voting = []
                 else: 
-                    print(f"Selection canceled for frequency {self.frequencies[prediction]}")
+                    print(f"Selection canceled for frequency {self.frequencies[self.idle_feq]}")
                     self.server.send_data({
                         "Frequency": str(self.frequencies[self.idle_feq]), 
                         "Action": self.button_states['CANCEL']
