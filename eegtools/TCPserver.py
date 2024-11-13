@@ -67,15 +67,17 @@ if __name__ == "__main__":
     try:
         while True:
             # Example: send random data every second
+            print('Enter frequency:')
+            x = input()
             data = {
-                "Frequency" : "30.0",
+                "Frequency" : f"{x}",
                 "Action" : "Hover"
             }
             server.send_data(data)
-            time.sleep(3)
+            time.sleep(2)
             data = {
-                "Frequency" : "30.0",
-                "Action" : "Cancel"
+                "Frequency" : f"{x}",
+                "Action" : "Selection"
             }
             server.send_data(data)
             time.sleep(1)
