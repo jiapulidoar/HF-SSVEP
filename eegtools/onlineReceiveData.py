@@ -156,18 +156,18 @@ class SSVEPOnlineProcessor:
         if(self.buffer.shape[0] < self.sfreq*2):
             return 0, [0]
         if self.state == self.button_states['HOVER']:
-            raw = mne.io.RawArray(self.buffer[-int(2.5*self.sfreq):, :].T, info = self.info, verbose=False) 
+            raw = mne.io.RawArray(self.buffer[-int(2*self.sfreq):, :].T, info = self.info, verbose=False) 
         else:
             raw = mne.io.RawArray(self.buffer[-int(2*self.sfreq):, :].T, info = self.info, verbose=False) 
         
-        raw.notch_filter([60], phase='zero',verbose=False, trans_bandwidth=4)
-        #raw.filter(l_freq=0.1, filter_length='auto', h_freq=120, fir_design="firwin", verbose=False)
-        raw.set_eeg_reference(['Fz'], verbose=False)
+        raw.notch_filter([60], phase='zero',verbose=False, trans_bandwidth=5)
+        #raw.filter(l_freq=0.1, filter_length='auto', h_freq=120, fir_design="firwin", verbose=False, h_trans_bandwidth=4)
+        raw.set_eeg_reference(['Cz'], verbose=False)
         raw.pick_channels(['O1', 'O2', 'Oz', 'PO3', 'PO4'], verbose=False)
         #raw.plot_psd(10, 70)
 
         prediction, rho = self.fbcca_model.fbcca(np.expand_dims(raw.get_data(), axis=0), self.frequencies, self.sfreq)
-        
+        #print(rho)
         # Update prediction tracking
         if self.last_prediction == prediction:
             self.prediction_count += 1
@@ -194,6 +194,7 @@ class SSVEPOnlineProcessor:
                 
         elif self.state == self.button_states['HOVER']:
             self.voting.append(prediction)
+
             if current_time - self.hover_start_time >= self.hover_duration:
                 if(self.voting.count(self.idle_feq) > len(self.voting)/2):
                     self.state = self.button_states['SELECTION']
@@ -212,13 +213,24 @@ class SSVEPOnlineProcessor:
                     })
                     self.voting = []
                     self.state = self.button_states['IDLE']
+            elif (len(self.voting) >=4): 
+                if(self.voting[-4:].count(self.idle_feq) < 2):
+                    print(f"Selection canceled for frequency {self.frequencies[self.idle_feq]}")
+                    print(self.voting[-4:])
+                    print(self.voting)
+                    self.server.send_data({
+                        "Frequency": str(self.frequencies[self.idle_feq]), 
+                        "Action": self.button_states['CANCEL']
+                    })
+                    self.voting = []
+                    self.state = self.button_states['IDLE']
 
                 
 
     def run(self):
         """Main processing loop"""
         while True:
-            prediction, rho = self.process_chunk()
+            prediction, rho = self.process_chunk(0.2)
             current_time = time.time()
             print(prediction)
             

@@ -25,8 +25,8 @@ class EEGConfig:
 
     # FBCCA model parameters
     FBCCA = {
-        'num_harms': 2,
-        'num_fbs': 2,
+        'num_harms': 1,
+        'num_fbs': 1,
         'a': 1.25,
         'b': 0.25
     }
@@ -34,7 +34,7 @@ class EEGConfig:
     # State machine parameters
     STATE_MACHINE = {
         'hover_duration': 2.0,  # seconds
-        'prediction_threshold': 4  # consecutive predictions needed
+        'prediction_threshold': 8  # consecutive predictions needed   5 for 0.5, 12 for 0.2
     }
 
     # Button state definitions
