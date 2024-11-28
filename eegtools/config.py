@@ -33,7 +33,9 @@ class EEGConfig:
 
     # State machine parameters
     STATE_MACHINE = {
-        'hover_duration': 2.0,  # seconds
+        'feedback': False,
+        'hover_duration_nf': 2,  # seconds, 
+        'hover_duration_f': 2,  # seconds
         'prediction_threshold': 8  # consecutive predictions needed   5 for 0.5, 12 for 0.2
     }
 

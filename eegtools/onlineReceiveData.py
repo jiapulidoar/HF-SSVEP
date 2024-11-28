@@ -119,6 +119,8 @@ class SSVEPOnlineProcessor:
         # Buffer settings
         self.buffer = None
         self.prediction_count = 0
+
+        self.prediction_list = []
         self.last_prediction = None
         self.idle_feq = None 
         self.voting = []
@@ -169,6 +171,7 @@ class SSVEPOnlineProcessor:
         prediction, rho = self.fbcca_model.fbcca(np.expand_dims(raw.get_data(), axis=0), self.frequencies, self.sfreq)
         #print(rho)
         # Update prediction tracking
+        self.prediction_list.append(prediction)
         if self.last_prediction == prediction:
             self.prediction_count += 1
         else:
@@ -180,7 +183,7 @@ class SSVEPOnlineProcessor:
     def check_action_trigger(self, prediction, current_time):
         """Check if action should be triggered based on state machine logic"""
         if self.state == self.button_states['IDLE']:
-            if self.prediction_count >= self.prediction_threshold:
+            if   self.prediction_count >= self.prediction_threshold: # self.prediction_list[-10:].count(prediction) >= self.prediction_threshold: #
                 self.state = self.button_states['HOVER']
                 self.idle_feq = prediction
                 #self.voting.append(prediction)
@@ -193,10 +196,12 @@ class SSVEPOnlineProcessor:
                 print(f"Entering Hover state for frequency {self.frequencies[prediction]}")
                 
         elif self.state == self.button_states['HOVER']:
+            self.prediction_count = 0
+            self.prediction_list = []
             self.voting.append(prediction)
 
             if current_time - self.hover_start_time >= self.hover_duration:
-                if(self.voting.count(self.idle_feq) > len(self.voting)/2):
+                if(self.voting.count(self.idle_feq) >= len(self.voting)/2):
                     self.state = self.button_states['SELECTION']
                     self.server.send_data({
                         "Frequency": str(self.frequencies[self.idle_feq]), 
@@ -213,11 +218,9 @@ class SSVEPOnlineProcessor:
                     })
                     self.voting = []
                     self.state = self.button_states['IDLE']
-            elif (len(self.voting) >=4): 
-                if(self.voting[-4:].count(self.idle_feq) < 2):
-                    print(f"Selection canceled for frequency {self.frequencies[self.idle_feq]}")
-                    print(self.voting[-4:])
-                    print(self.voting)
+            elif ( EEGConfig.STATE_MACHINE['feedback'] and len(self.voting) >=5 ): 
+                if(self.voting[-5:].count(self.idle_feq) < 3):
+                    print(f"Selection canceled for frequency {self.frequencies[self.idle_feq]} {self.voting[-4:].count(self.idle_feq)}/4")
                     self.server.send_data({
                         "Frequency": str(self.frequencies[self.idle_feq]), 
                         "Action": self.button_states['CANCEL']
@@ -232,7 +235,7 @@ class SSVEPOnlineProcessor:
         while True:
             prediction, rho = self.process_chunk(0.2)
             current_time = time.time()
-            print(prediction)
+            #print(prediction)
             
             if prediction is not None:
                 if( self.state == self.button_states['SELECTION']):
@@ -259,7 +262,7 @@ if __name__ == '__main__':
         b=EEGConfig.FBCCA['b'],
         frequencies=EEGConfig.FREQUENCIES,
         channels=EEGConfig.CHANNELS,
-        hover_duration=EEGConfig.STATE_MACHINE['hover_duration'],
+        hover_duration=  EEGConfig.STATE_MACHINE['hover_duration_f'] if EEGConfig.STATE_MACHINE['feedback'] else EEGConfig.STATE_MACHINE['hover_duration_nf'], 
         prediction_threshold=EEGConfig.STATE_MACHINE['prediction_threshold'],
         button_states=EEGConfig.BUTTON_STATES
     )

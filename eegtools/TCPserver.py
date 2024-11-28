@@ -74,7 +74,7 @@ if __name__ == "__main__":
                 "Action" : "Hover"
             }
             server.send_data(data)
-            time.sleep(2)
+            time.sleep(1)
             data = {
                 "Frequency" : f"{x}",
                 "Action" : "Selection"
