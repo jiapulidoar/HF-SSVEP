@@ -1,4 +1,4 @@
-# High-Frequency SSVEP BCI
+# Asynchronous High-Frequency SSVEP Brain-Computer Interface in Virtual Reality 
 
 This repository contains a collection of tools for analyzing and classifying Steady-State Visual Evoked Potential (SSVEP) Brain-Computer Interfaces (BCI) with high-frequency stimuli. It includes code for classification using Filter Bank Canonical Correlation Analysis (FBCCA) with filters specifically designed for frequencies in the 30 Hz and higher range.
 
