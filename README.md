@@ -9,4 +9,10 @@ Key features:
 - EEG data processing utilities
 
 
+Experiment Design_2.png
+
+![Component Diagram](./images/BCI_Elements.png)
+
 ![Experiment Design](./images/Experiment%20Design_2.png)
+
+
