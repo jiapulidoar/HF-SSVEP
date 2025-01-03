@@ -9,10 +9,45 @@ Key features:
 - EEG data processing utilities
 
 
-Experiment Design_2.png
 
 ![Component Diagram](./images/BCI_Elements.png)
 
-![Experiment Design](./images/Experiment%20Design_2.png)
 
+---
 
+## Installation
+
+### Prerequisites
+Ensure the following are installed:
+- Python 3.8 or later
+- pip (Python package manager)
+- Required hardware:
+  - **EEG System**: BioSemi ActiveTwo or compatible device
+
+### Steps
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/jiapulidoar/HF-SSVEP
+   cd ssvep-bci
+
+2. Set up a virtual environment (optional but recommended):
+
+   ```bash
+   python -m venv env
+   source env/bin/activate  # On Windows: env\Scripts\activate
+3. Install the required Python packages:
+
+   ```bash
+   pip install -r requirements.txt
+
+## Usage 
+
+1. Setup BioSemi ActiveTwo and start TCP server in port `8888` and sampling rate 512Hz.
+
+2. Online Experiment: Configure the system settings in `eegtools\config.py` and run: 
+
+   ```bash
+   python eegtools\onlineReceiveData.pyeegtools\config.py
+
+3. 
