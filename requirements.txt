@@ -1,0 +1,6 @@
+mne==1.9.0
+numpy==2.2.1
+pandas==2.2.3
+scikit_learn==1.6.0
+scipy==1.14.1
+~atplotlib==3.7.2
