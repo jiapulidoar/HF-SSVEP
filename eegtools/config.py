@@ -21,21 +21,21 @@ class EEGConfig:
     ]
 
     # EEG channel configuration
-    CHANNELS = [13, 14, 15, 16, 17]
+    CHANNELS = [13, 14, 15, 16] #17
 
     # FBCCA model parameters
     FBCCA = {
         'num_harms': 1,
         'num_fbs': 1,
-        'a': 1.25,
+        'a': 1.25, #1.25
         'b': 0.25
     }
 
     # State machine parameters
     STATE_MACHINE = {
-        'feedback': False,
-        'hover_duration_nf': 2,  # seconds, 
-        'hover_duration_f': 2,  # seconds
+        'feedback': True,
+        'hover_duration_nf': 3,  # seconds, 
+        'hover_duration_f': 3,  # seconds
         'prediction_threshold': 8  # consecutive predictions needed   5 for 0.5, 12 for 0.2
     }
 

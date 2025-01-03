@@ -219,7 +219,7 @@ class SSVEPOnlineProcessor:
                     self.voting = []
                     self.state = self.button_states['IDLE']
             elif ( EEGConfig.STATE_MACHINE['feedback'] and len(self.voting) >=5 ): 
-                if(self.voting[-5:].count(self.idle_feq) < 3):
+                if(self.voting[-4:].count(self.idle_feq) < 2):
                     print(f"Selection canceled for frequency {self.frequencies[self.idle_feq]} {self.voting[-4:].count(self.idle_feq)}/4")
                     self.server.send_data({
                         "Frequency": str(self.frequencies[self.idle_feq]), 
